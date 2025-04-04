@@ -1,5 +1,5 @@
-import { Stack } from "expo-router";
+import Formulario from "./index";
 
 export default function RootLayout() {
-  return <Stack />;
+  return <Formulario />;
 }
