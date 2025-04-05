@@ -5,10 +5,12 @@ import {
   Button, 
   Alert, 
   Keyboard, 
-  TouchableWithoutFeedback 
+  TouchableWithoutFeedback,
+  Text
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
+import { useGoogleDrive } from "./googleDriveService"; // Importamos nuestro servicio
 
 // Definición de los datos del formulario
 type FormData = {
@@ -18,7 +20,7 @@ type FormData = {
   ubicacionPrueba: string;
   calidadRoca: string;
   temperaturaAmbiente: string;
-  unidadMinera: string; // 🔹 Se agregó este campo
+  unidadMinera: string;
 };
 
 // Definición de los campos
@@ -26,8 +28,8 @@ type Campo = {
   id: string;
   label: string;
   key: keyof FormData;
-  type: "input" | "select"; // 🔹 Se agregó el tipo de campo
-  options?: string[]; // 🔹 Opcional, solo si es un select
+  type: "input" | "select";
+  options?: string[];
 };
 
 const Formulario = () => {
@@ -39,8 +41,11 @@ const Formulario = () => {
     ubicacionPrueba: "",
     calidadRoca: "",
     temperaturaAmbiente: "",
-    unidadMinera: "" // 🔹 Se agregó el estado inicial
+    unidadMinera: ""
   });
+  
+  const [uploading, setUploading] = useState(false);
+  const { uploadJsonFile } = useGoogleDrive(); // Utilizamos nuestro hook
 
   // Lista de campos
   const campos: Campo[] = [
@@ -62,6 +67,25 @@ const Formulario = () => {
   const handleSubmit = () => {
     Keyboard.dismiss();
     Alert.alert("Datos enviados", JSON.stringify(formData, null, 2));
+  };
+
+  // Función para subir a Google Drive
+  const handleUploadToDrive = async () => {
+    try {
+      setUploading(true);
+      
+      const fileName = `formulario_${formData.tecnico}_${new Date().toISOString().slice(0, 10)}.json`;
+      const result = await uploadJsonFile(formData, fileName);
+      
+      Alert.alert(
+        "Éxito", 
+        `El archivo ${result.fileName} se ha subido correctamente a Google Drive`
+      );
+    } catch (error: any) { // Tipo 'any' para resolver el error de unknown
+      Alert.alert("Error", `No se pudo subir el archivo: ${error.message || 'Error desconocido'}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -93,7 +117,18 @@ const Formulario = () => {
             </View>
           )}
         />
-        <Button title="Enviar" onPress={handleSubmit} />
+        <View style={{ marginVertical: 10 }}>
+          <Button title="Enviar" onPress={handleSubmit} />
+        </View>
+        <View style={{ marginVertical: 10 }}>
+          <Button 
+            title="Subir a Google Drive" 
+            onPress={handleUploadToDrive} 
+            disabled={uploading}
+            color="#4285F4"
+          />
+          {uploading && <Text style={{ textAlign: 'center', marginTop: 5 }}>Subiendo...</Text>}
+        </View>
       </View>
     </TouchableWithoutFeedback>
   );

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Mineria",
-    "slug": "Mineria",
+    "slug": "minas",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -37,6 +37,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "962f719b-6ba0-4ff5-80ea-750a7d4fe263"
+      }
+    },
+    "owner": "rodbabas"
   }
 }
