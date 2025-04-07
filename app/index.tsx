@@ -6,24 +6,15 @@ import {
   Alert, 
   Keyboard, 
   TouchableWithoutFeedback,
-  Text
+  Text,
+  ActivityIndicator,
+  StyleSheet
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
-import { useGoogleDrive } from "./googleDriveService"; // Importamos nuestro servicio
+import { createPDF, sharePDF } from "../services/pdfService";
+import { FormData } from "../types/types";
 
-// Definición de los datos del formulario
-type FormData = {
-  emina: string;
-  tecnico: string;
-  auxiliar: string;
-  ubicacionPrueba: string;
-  calidadRoca: string;
-  temperaturaAmbiente: string;
-  unidadMinera: string;
-};
-
-// Definición de los campos
 type Campo = {
   id: string;
   label: string;
@@ -33,7 +24,6 @@ type Campo = {
 };
 
 const Formulario = () => {
-  // Estado para el formulario
   const [formData, setFormData] = useState<FormData>({
     emina: "",
     tecnico: "",
@@ -44,10 +34,8 @@ const Formulario = () => {
     unidadMinera: ""
   });
   
-  const [uploading, setUploading] = useState(false);
-  const { uploadJsonFile } = useGoogleDrive(); // Utilizamos nuestro hook
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
-  // Lista de campos
   const campos: Campo[] = [
     { id: "1", label: "E.Mina", type: "input", key: "emina" },
     { id: "2", label: "Técnico", type: "input", key: "tecnico" },
@@ -58,45 +46,61 @@ const Formulario = () => {
     { id: "7", label: "Unidad Minera", key: "unidadMinera", type: "select", options: ["Saucito", "San Julian", "Fresnillo", "Cienega", "Juanicipio"] }
   ];
 
-  // Función para actualizar el estado
   const handleChange = (key: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Función para enviar el formulario
-  const handleSubmit = () => {
-    Keyboard.dismiss();
-    Alert.alert("Datos enviados", JSON.stringify(formData, null, 2));
+  const validateForm = () => {
+    const requiredFields: (keyof FormData)[] = ["tecnico", "unidadMinera", "emina"];
+    for (const field of requiredFields) {
+      if (!formData[field]) {
+        Alert.alert("Error", `El campo ${campos.find(c => c.key === field)?.label || field} es obligatorio`);
+        return false;
+      }
+    }
+    return true;
   };
 
-  // Función para subir a Google Drive
-  const handleUploadToDrive = async () => {
+  const handleGeneratePDF = async () => {
+    if (!validateForm()) return;
+    
     try {
-      setUploading(true);
+      setGeneratingPDF(true);
+      const pdf = await createPDF(formData);
       
-      const fileName = `formulario_${formData.tecnico}_${new Date().toISOString().slice(0, 10)}.json`;
-      const result = await uploadJsonFile(formData, fileName);
-      
-      Alert.alert(
-        "Éxito", 
-        `El archivo ${result.fileName} se ha subido correctamente a Google Drive`
-      );
-    } catch (error: any) { // Tipo 'any' para resolver el error de unknown
-      Alert.alert("Error", `No se pudo subir el archivo: ${error.message || 'Error desconocido'}`);
+      if (pdf?.filePath) {
+        Alert.alert(
+          "PDF Generado", 
+          "¿Qué deseas hacer con el PDF?",
+          [
+            {
+              text: "Compartir",
+              onPress: () => sharePDF(pdf.filePath),
+              style: "default"
+            },
+            {
+              text: "Cerrar",
+              style: "cancel"
+            }
+          ]
+        );
+      }
+    } catch (error: any) {
+      Alert.alert("Error", `No se pudo generar el PDF: ${error.message || 'Error desconocido'}`);
     } finally {
-      setUploading(false);
+      setGeneratingPDF(false);
     }
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={{ padding: 20, flex: 1 }}>
+      <View style={styles.container}>
         <FlatList
           data={campos}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
-            <View style={{ marginBottom: 10 }}>
+            <View style={styles.fieldContainer}>
               {item.type === "input" ? (
                 <TextInput
                   label={item.label}
@@ -105,33 +109,67 @@ const Formulario = () => {
                   mode="outlined"
                 />
               ) : (
-                <Picker
-                  selectedValue={formData[item.key]}
-                  onValueChange={(value) => handleChange(item.key, value)}
-                >
-                  {item.options?.map((option) => (
-                    <Picker.Item key={option} label={option} value={option} />
-                  ))}
-                </Picker>
+                <View>
+                  <Text style={styles.pickerLabel}>{item.label}</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={formData[item.key]}
+                      onValueChange={(value) => handleChange(item.key, value)}
+                    >
+                      <Picker.Item label="Seleccione una opción" value="" />
+                      {item.options?.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
               )}
             </View>
           )}
         />
-        <View style={{ marginVertical: 10 }}>
-          <Button title="Enviar" onPress={handleSubmit} />
-        </View>
-        <View style={{ marginVertical: 10 }}>
+        
+        <View style={styles.buttonContainer}>
           <Button 
-            title="Subir a Google Drive" 
-            onPress={handleUploadToDrive} 
-            disabled={uploading}
-            color="#4285F4"
+            title="Generar PDF" 
+            onPress={handleGeneratePDF} 
+            disabled={generatingPDF}
+            color="#D14836"
           />
-          {uploading && <Text style={{ textAlign: 'center', marginTop: 5 }}>Subiendo...</Text>}
+          {generatingPDF && <ActivityIndicator style={styles.loader} color="#D14836" />}
         </View>
       </View>
     </TouchableWithoutFeedback>
   );
 };
+
+// Mantener los mismos estilos, eliminar estilos relacionados con Google
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+    flex: 1,
+    backgroundColor: '#f9f9f9'
+  },
+  fieldContainer: {
+    marginBottom: 15,
+  },
+  pickerLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    backgroundColor: '#fff'
+  },
+  buttonContainer: {
+    marginVertical: 15,
+  },
+  loader: {
+    marginTop: 5,
+    alignSelf: 'center'
+  }
+});
 
 export default Formulario;
