@@ -7,4 +7,7 @@ export type FormData = {
     calidadRoca: string;
     temperaturaAmbiente: string;
     unidadMinera: string;
+    tipoAncla: string;
+    largo: string;
+    ancho: string;
   };

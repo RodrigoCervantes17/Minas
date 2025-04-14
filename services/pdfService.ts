@@ -188,6 +188,23 @@ const generateHTML = (data: FormData) => {
               <div></div>
             </div>
           </div>
+          <div class="section">
+          <div class="section-title">4. Especificaciones de Anclaje</div>
+          <div class="data-grid">
+            <div class="data-item">
+              <div class="data-label">Tipo de Ancla:</div>
+              <div class="data-value">${data.tipoAncla}</div>
+            </div>
+            <div class="data-item">
+              <div class="data-label">Largo:</div>
+              <div class="data-value">${data.largo}</div>
+            </div>
+            <div class="data-item">
+              <div class="data-label">Ancho:</div>
+              <div class="data-value">${data.ancho}</div>
+            </div>
+          </div>
+        </div>
           
           <div class="footer">
             <p>Este documento es un reporte oficial de inspección minera. Generado el ${getCurrentDate()}.</p>
