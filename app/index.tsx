@@ -14,6 +14,7 @@ import { TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
 import { createPDF, sharePDF } from "../services/pdfService";
 import { FormData } from "../types/types";
+import { Campo } from "../types/types";
 
 interface OpcionesAnclas {
   [key: string]: {
@@ -21,14 +22,6 @@ interface OpcionesAnclas {
     anchos: string[];
   };
 }
-
-type Campo = {
-  id: string;
-  label: string;
-  key: keyof FormData;
-  type: "input" | "select";
-  options?: string[];
-};
 
 const OPCIONES_ANCLAS: OpcionesAnclas = {
   "Ancla 1": {
@@ -127,8 +120,9 @@ const Formulario = () => {
   const validateForm = () => {
     const requiredFields: (keyof FormData)[] = ["tecnico", "unidadMinera", "emina", "tipoAncla"];
     for (const field of requiredFields) {
+      const missingField = getCampos().find(c => c.key === field)?.label || field;
       if (!formData[field]) {
-        Alert.alert("Error", `El campo ${getCampos().find(c => c.key === field)?.label || field} es obligatorio`);
+        Alert.alert("Error", `El campo ${missingField} es obligatorio`);
         return false;
       }
     }
