@@ -11,3 +11,11 @@ export type FormData = {
     largo: string;
     ancho: string;
   };
+
+  export type Campo = {
+    id: string;
+    label: string;
+    key: keyof FormData;
+    type: "input" | "select";
+    options?: string[];
+  };
