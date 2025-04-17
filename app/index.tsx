@@ -64,42 +64,70 @@ const Formulario = () => {
 
   const getCampos = (): Campo[] => {
     const camposBase: Campo[] = [
-      { id: "1", label: "E.Mina", type: "input", key: "emina" },
-      { id: "2", label: "Técnico", type: "input", key: "tecnico" },
-      { id: "3", label: "Auxiliar", type: "input", key: "auxiliar" },
-      { id: "4", label: "Ubicacion de prueba", type: "input", key: "ubicacionPrueba" },
-      { id: "5", label: "Calidad de Roca", type: "input", key: "calidadRoca" },
-      { id: "6", label: "Temperatura ambiente", type: "input", key: "temperaturaAmbiente" },
-      { id: "7", label: "Unidad Minera", key: "unidadMinera", type: "select", options: ["Saucito", "San Julian", "Fresnillo", "Cienega", "Juanicipio"] },
+      { 
+        id: "1", 
+        label: "E.Mina", 
+        type: "input",
+        key: "emina" 
+      },
+      { 
+        id: "2",
+         label: "Técnico",
+         type: "input",
+         key: "tecnico" 
+        },
+      { 
+        id: "3",
+        label: "Auxiliar",
+        type: "input",
+        key: "auxiliar" 
+      },
+      { 
+        id: "4",
+        label: "Ubicacion de prueba",
+        type: "input",
+        key: "ubicacionPrueba" 
+      },
+      { 
+        id: "5",
+        label: "Calidad de Roca",
+        type: "input",
+        key: "calidadRoca" 
+      },
+      { 
+        id: "6",
+        label: "Temperatura ambiente",
+        type: "input",
+        key: "temperaturaAmbiente" 
+      },
+      {
+         id: "7",
+        label: "Unidad Minera",
+        key: "unidadMinera",
+        type: "select",
+        options: ["Saucito", "San Julian", "Fresnillo", "Cienega", "Juanicipio"] },
       { 
         id: "8", 
         label: "Tipo de Ancla", 
         key: "tipoAncla", 
         type: "select", 
         options: Object.keys(OPCIONES_ANCLAS) 
+      },
+      {
+        id: "9",
+        label: "Largo",
+        key: "largo",
+        type: "select",
+        options: OPCIONES_ANCLAS[formData.tipoAncla]?.largos || []
+      },
+      {
+        id: "10",
+        label: "Ancho",
+        key: "ancho",
+        type: "select",
+        options: OPCIONES_ANCLAS[formData.tipoAncla]?.anchos || []
       }
     ];
-
-    // Agregar campos de largo y ancho condicionalmente
-    if (formData.tipoAncla) {
-      camposBase.push(
-        {
-          id: "9",
-          label: "Largo",
-          key: "largo",
-          type: "select",
-          options: OPCIONES_ANCLAS[formData.tipoAncla]?.largos || []
-        },
-        {
-          id: "10",
-          label: "Ancho",
-          key: "ancho",
-          type: "select",
-          options: OPCIONES_ANCLAS[formData.tipoAncla]?.anchos || []
-        }
-      );
-    }
-
     return camposBase;
   };
 
