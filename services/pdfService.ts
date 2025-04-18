@@ -6,6 +6,16 @@ import { FormData } from '../types/types';
 
 // Genera el contenido HTML del PDF
 const generateHTML = (data: FormData) => {
+  const fotoSection = data.fotoBase64 ? `
+        <div class="section">
+            <div class="section-title">5. Fotografía de Inspección</div>
+            <div style="text-align: center; margin-top: 20px;">
+                <img src="data:image/jpeg;base64,${data.fotoBase64}" 
+                     style="max-width: 100%; max-height: 300px;" />
+            </div>
+        </div>
+    ` : '';
+
   return `
     <!DOCTYPE html>
 <html>
@@ -192,6 +202,8 @@ const generateHTML = (data: FormData) => {
           </div>
         </div>
       </div>
+
+      ${fotoSection}
 
       <div class="signature-area">
         <div class="signature">
