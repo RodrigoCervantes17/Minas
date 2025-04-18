@@ -10,12 +10,15 @@ export type FormData = {
     tipoAncla: string;
     largo: string;
     ancho: string;
+    fotoUri?: string;
+    fotoBase64?: string;
   };
 
   export type Campo = {
     id: string;
     label: string;
     key: keyof FormData;
-    type: "input" | "select";
+    type: "input" | "select" | "photo";
     options?: string[];
+    
   };
