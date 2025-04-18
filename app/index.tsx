@@ -13,11 +13,15 @@ import {
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
-import * as ImagePicker from 'expo-image-picker';
-import { Camera } from 'expo-camera';
 import { createPDF, sharePDF } from "../services/pdfService";
 import { FormData } from "../types/types";
 import { Campo } from "../types/types";
+import { 
+  requestCameraPermissions, 
+  requestGalleryPermissions,
+  takePhoto as takePhotoService,
+  selectFromGallery as selectFromGalleryService
+} from "../services/cameraService";
 
 interface OpcionesAnclas {
   [key: string]: {
@@ -71,11 +75,11 @@ const Formulario = () => {
 
   useEffect(() => {
     (async () => {
-      const cameraStatus = await Camera.requestCameraPermissionsAsync();
-      setHasCameraPermission(cameraStatus.status === 'granted');
+      const cameraPermission = await requestCameraPermissions();
+      setHasCameraPermission(cameraPermission);
 
-      const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      setHasGalleryPermission(galleryStatus.status === 'granted');
+      const galleryPermission = await requestGalleryPermissions();
+      setHasGalleryPermission(galleryPermission);
     })();
   }, []);
 
@@ -174,26 +178,13 @@ const Formulario = () => {
       return;
     }
 
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.7,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const photo = result.assets[0];
-        setFormData(prev => ({ 
-          ...prev, 
-          fotoUri: photo.uri,
-          fotoBase64: photo.base64 || undefined 
-        }));
-      }
-    } catch (error) {
-      console.error('Error al tomar foto:', error);
-      Alert.alert("Error", "No se pudo tomar la foto");
+    const photo = await takePhotoService();
+    if (photo) {
+      setFormData(prev => ({ 
+        ...prev, 
+        fotoUri: photo.uri,
+        fotoBase64: photo.base64 || undefined 
+      }));
     }
   };
 
@@ -203,26 +194,13 @@ const Formulario = () => {
       return;
     }
 
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.7,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const photo = result.assets[0];
-        setFormData(prev => ({ 
-          ...prev, 
-          fotoUri: photo.uri,
-          fotoBase64: photo.base64 || undefined 
-        }));
-      }
-    } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
-      Alert.alert("Error", "No se pudo seleccionar la imagen");
+    const photo = await selectFromGalleryService();
+    if (photo) {
+      setFormData(prev => ({ 
+        ...prev, 
+        fotoUri: photo.uri,
+        fotoBase64: photo.base64 || undefined 
+      }));
     }
   };
 
