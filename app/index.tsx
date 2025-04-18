@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   View, 
   FlatList, 
@@ -8,10 +8,13 @@ import {
   TouchableWithoutFeedback,
   Text,
   ActivityIndicator,
-  StyleSheet
+  StyleSheet,
+  Image
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
+import * as ImagePicker from 'expo-image-picker';
+import { Camera } from 'expo-camera';
 import { createPDF, sharePDF } from "../services/pdfService";
 import { FormData } from "../types/types";
 import { Campo } from "../types/types";
@@ -57,10 +60,24 @@ const Formulario = () => {
     unidadMinera: "",
     tipoAncla: "",
     largo: "",
-    ancho: ""
+    ancho: "",
+    fotoUri: "",
+    fotoBase64: ""
   });
   
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const cameraStatus = await Camera.requestCameraPermissionsAsync();
+      setHasCameraPermission(cameraStatus.status === 'granted');
+
+      const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      setHasGalleryPermission(galleryStatus.status === 'granted');
+    })();
+  }, []);
 
   const getCampos = (): Campo[] => {
     const camposBase: Campo[] = [
@@ -72,10 +89,10 @@ const Formulario = () => {
       },
       { 
         id: "2",
-         label: "Técnico",
-         type: "input",
-         key: "tecnico" 
-        },
+        label: "Técnico",
+        type: "input",
+        key: "tecnico" 
+      },
       { 
         id: "3",
         label: "Auxiliar",
@@ -101,11 +118,12 @@ const Formulario = () => {
         key: "temperaturaAmbiente" 
       },
       {
-         id: "7",
+        id: "7",
         label: "Unidad Minera",
         key: "unidadMinera",
         type: "select",
-        options: ["Saucito", "San Julian", "Fresnillo", "Cienega", "Juanicipio"] },
+        options: ["Saucito", "San Julian", "Fresnillo", "Cienega", "Juanicipio"] 
+      },
       { 
         id: "8", 
         label: "Tipo de Ancla", 
@@ -126,13 +144,18 @@ const Formulario = () => {
         key: "ancho",
         type: "select",
         options: OPCIONES_ANCLAS[formData.tipoAncla]?.anchos || []
+      },
+      {
+        id: "11",
+        label: "Foto de Inspección",
+        key: "fotoUri",
+        type: "photo"
       }
     ];
     return camposBase;
   };
 
   const handleChange = (key: keyof FormData, value: string) => {
-    // Resetear valores al cambiar tipo de ancla
     if (key === "tipoAncla") {
       setFormData(prev => ({ 
         ...prev, 
@@ -142,6 +165,64 @@ const Formulario = () => {
       }));
     } else {
       setFormData(prev => ({ ...prev, [key]: value }));
+    }
+  };
+
+  const takePhoto = async () => {
+    if (hasCameraPermission === false) {
+      Alert.alert("Error", "No tienes permisos para acceder a la cámara");
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photo = result.assets[0];
+        setFormData(prev => ({ 
+          ...prev, 
+          fotoUri: photo.uri,
+          fotoBase64: photo.base64 || undefined 
+        }));
+      }
+    } catch (error) {
+      console.error('Error al tomar foto:', error);
+      Alert.alert("Error", "No se pudo tomar la foto");
+    }
+  };
+
+  const selectFromGallery = async () => {
+    if (hasGalleryPermission === false) {
+      Alert.alert("Error", "No tienes permisos para acceder a la galería");
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const photo = result.assets[0];
+        setFormData(prev => ({ 
+          ...prev, 
+          fotoUri: photo.uri,
+          fotoBase64: photo.base64 || undefined 
+        }));
+      }
+    } catch (error) {
+      console.error('Error al seleccionar imagen:', error);
+      Alert.alert("Error", "No se pudo seleccionar la imagen");
     }
   };
 
@@ -188,6 +269,64 @@ const Formulario = () => {
     }
   };
 
+  const renderItem = ({ item }: { item: Campo }) => (
+    <View style={styles.fieldContainer}>
+      {item.type === "input" ? (
+        <TextInput
+          label={item.label}
+          value={formData[item.key]}
+          onChangeText={(text) => handleChange(item.key, text)}
+          mode="outlined"
+        />
+      ) : item.type === "photo" ? (
+        <View>
+          <Text style={styles.pickerLabel}>{item.label}</Text>
+          <View style={styles.photoContainer}>
+            {formData.fotoUri ? (
+              <Image 
+                source={{ uri: formData.fotoUri }} 
+                style={styles.photo} 
+              />
+            ) : (
+              <Text style={styles.noPhotoText}>No hay foto seleccionada</Text>
+            )}
+            <View style={styles.photoButtons}>
+              <View style={styles.photoButton}>
+                <Button 
+                  title="Tomar Foto" 
+                  onPress={takePhoto} 
+                  color="#D14836"
+                />
+              </View>
+              <View style={styles.photoButton}>
+                <Button 
+                  title="Seleccionar" 
+                  onPress={selectFromGallery} 
+                  color="#555"
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View>
+          <Text style={styles.pickerLabel}>{item.label}</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={formData[item.key]}
+              onValueChange={(value) => handleChange(item.key, value)}
+            >
+              <Picker.Item label={`Seleccione ${item.label}`} value="" />
+              {item.options?.map((option) => (
+                <Picker.Item key={option} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
@@ -195,33 +334,8 @@ const Formulario = () => {
           data={getCampos()}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <View style={styles.fieldContainer}>
-              {item.type === "input" ? (
-                <TextInput
-                  label={item.label}
-                  value={formData[item.key]}
-                  onChangeText={(text) => handleChange(item.key, text)}
-                  mode="outlined"
-                />
-              ) : (
-                <View>
-                  <Text style={styles.pickerLabel}>{item.label}</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={formData[item.key]}
-                      onValueChange={(value) => handleChange(item.key, value)}
-                    >
-                      <Picker.Item label={`Seleccione ${item.label}`} value="" />
-                      {item.options?.map((option) => (
-                        <Picker.Item key={option} label={option} value={option} />
-                      ))}
-                    </Picker>
-                  </View>
-                </View>
-              )}
-            </View>
-          )}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
         />
 
         <View style={styles.buttonContainer}>
@@ -244,6 +358,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f9f9f9'
   },
+  listContent: {
+    paddingBottom: 20,
+  },
   fieldContainer: {
     marginBottom: 15,
   },
@@ -257,6 +374,34 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 4,
     backgroundColor: '#fff'
+  },
+  photoContainer: {
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  photo: {
+    width: '100%',
+    height: 200,
+    marginBottom: 10,
+    resizeMode: 'contain',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+  },
+  noPhotoText: {
+    color: '#999',
+    marginBottom: 10,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  photoButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  photoButton: {
+    flex: 1,
+    marginHorizontal: 5,
   },
   buttonContainer: {
     marginVertical: 15,
