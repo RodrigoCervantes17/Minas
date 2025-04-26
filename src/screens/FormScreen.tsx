@@ -13,15 +13,16 @@ import {
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
-import { createPDF, sharePDF } from "../services/pdfService";
-import { FormData } from "../types/types";
-import { Campo } from "../types/types";
+import { createPDF, sharePDF } from "../../services/pdfService";
+import { FormData } from "../../types/types";
+import { Campo } from "../../types/types";
 import { 
   requestCameraPermissions, 
   requestGalleryPermissions,
   takePhoto as takePhotoService,
   selectFromGallery as selectFromGalleryService
-} from "../services/cameraService";
+} from "../../services/cameraService";
+import { validateForm } from "../utils/formUtils";
 
 interface OpcionesAnclas {
   [key: string]: {
@@ -161,14 +162,14 @@ const Formulario = () => {
 
   const handleChange = (key: keyof FormData, value: string) => {
     if (key === "tipoAncla") {
-      setFormData(prev => ({ 
+      setFormData((prev : FormData) => ({ 
         ...prev, 
         [key]: value,
         largo: "",
         ancho: ""
       }));
     } else {
-      setFormData(prev => ({ ...prev, [key]: value }));
+      setFormData((prev: FormData) => ({ ...prev, [key]: value }));
     }
   };
 
@@ -180,7 +181,7 @@ const Formulario = () => {
 
     const photo = await takePhotoService();
     if (photo) {
-      setFormData(prev => ({ 
+      setFormData((prev: FormData) => ({ 
         ...prev, 
         fotoUri: photo.uri,
         fotoBase64: photo.base64 || undefined 
@@ -196,28 +197,15 @@ const Formulario = () => {
 
     const photo = await selectFromGalleryService();
     if (photo) {
-      setFormData(prev => ({ 
+      setFormData((prev: FormData) => ({ 
         ...prev, 
         fotoUri: photo.uri,
         fotoBase64: photo.base64 || undefined 
       }));
     }
   };
-
-  const validateForm = () => {
-    const requiredFields: (keyof FormData)[] = ["tecnico", "unidadMinera", "emina", "tipoAncla"];
-    for (const field of requiredFields) {
-      const missingField = getCampos().find(c => c.key === field)?.label || field;
-      if (!formData[field]) {
-        Alert.alert("Error", `El campo ${missingField} es obligatorio`);
-        return false;
-      }
-    }
-    return true;
-  };
-
   const handleGeneratePDF = async () => {
-    if (!validateForm()) return;
+    if (!validateForm(formData)) return;
     
     try {
       setGeneratingPDF(true);
@@ -389,5 +377,4 @@ const styles = StyleSheet.create({
     alignSelf: 'center'
   }
 });
-
-export default Formulario;
+export default Formulario
