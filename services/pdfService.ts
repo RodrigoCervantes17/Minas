@@ -1,263 +1,240 @@
-// Modificado pdfService.ts
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+// services/pdfService.ts
 import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { Alert } from 'react-native';
 import { FormData } from '../types/types';
 
-// Genera el contenido HTML del PDF
-const generateHTML = (data: FormData) => {
-  const fotoSection = data.fotoBase64 ? `
-        <div class="section">
-            <div class="section-title">5. Fotografía de Inspección</div>
-            <div style="text-align: center; margin-top: 20px;">
-                <img src="data:image/jpeg;base64,${data.fotoBase64}" 
-                     style="max-width: 100%; max-height: 300px;" />
-            </div>
-        </div>
-    ` : '';
-
+const generateHTML = (data: FormData): string => {
   return `
-    <!DOCTYPE html>
+ <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Reporte de Minería</title>
-    <style>
-      * {
-        box-sizing: border-box;
-      }
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 20px;
+      color: #333;
+    }
 
-      body {
-        font-family: 'Helvetica', 'Arial', sans-serif;
-        color: #333;
-        line-height: 1.6;
-        margin: 0;
-        padding: 0;
-      }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
 
-      .container {
-        width: 100%;
-        padding: 20px 40px;
-      }
+    .info-table, .pruebas-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
 
-      .header {
-        background-color: #003366;
-        color: white;
-        padding: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-      }
+    .info-table td, .pruebas-table th, .pruebas-table td {
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
 
-      .logo {
-        font-size: 24px;
-        font-weight: bold;
-      }
+    .pruebas-table th {
+      background-color: #f0f0f0;
+    }
 
-      .report-title {
-        font-size: 22px;
-        text-align: center;
-        margin-bottom: 5px;
-      }
+    .chart {
+      width: 100%;
+      height: 300px;
+      background: #f5f5f5;
+      margin: 20px 0;
+      padding: 10px;
+      box-sizing: border-box;
+      overflow-x: auto;
+    }
 
-      .report-subtitle {
-        font-size: 16px;
-        text-align: center;
-        color: #666;
-        margin-bottom: 30px;
-      }
+    .chart-bars {
+      display: flex;
+      align-items: flex-end;
+      height: 100%;
+      gap: 10px;
+    }
 
-      .section {
-        margin-bottom: 35px;
-        padding-bottom: 20px;
-        page-break-inside: avoid;
-      }
+    .bar-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 40px;
+    }
 
-      .section-title {
-        font-size: 18px;
-        color: #003366;
-        margin-bottom: 15px;
-        font-weight: bold;
-        border-bottom: 2px solid #003366;
-        padding-bottom: 5px;
-      }
+    .chart-bar {
+      background: #D14836;
+      width: 100%;
+      position: relative;
+      border-radius: 5px 5px 0 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      transition: height 0.3s ease;
+    }
 
-      .data-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px 40px;
-      }
+    .bar-value {
+      margin-bottom: 4px;
+    }
 
-      .data-item {
-        margin-bottom: 10px;
-      }
+    .bar-label {
+      margin-top: 5px;
+      font-size: 12px;
+    }
 
-      .data-label {
-        font-weight: bold;
-        color: #555;
-      }
+    .foto-container {
+      margin: 15px 0;
+      page-break-inside: avoid;
+    }
 
-      .data-value {
-        padding: 5px 0;
-      }
+    .foto {
+      max-width: 100%;
+      max-height: 300px;
+    }
 
-      .footer {
-        margin-top: 40px;
-        padding-top: 10px;
-        border-top: 1px solid #ddd;
-        font-size: 12px;
-        color: #777;
-        text-align: center;
-      }
+    .firma {
+      margin-top: 50px;
+      width: 45%;
+      display: inline-block;
+    }
 
-      .signature-area {
-        margin-top: 50px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 40px;
-      }
+    .page-break {
+      page-break-after: always;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>REPORTE TÉCNICO DE ANCLAJE</h1>
+    <h3>${data.unidadMinera}</h3>
+  </div>
 
-      .signature {
-        border-top: 1px solid #333;
-        padding-top: 10px;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <div class="logo">REPORTE TÉCNICO MINERO</div>
-        <div class="date">${getCurrentDate()}</div>
+  <table class="info-table">
+    <tr>
+      <td><strong>E.Mina:</strong></td>
+      <td>${data.emina}</td>
+      <td><strong>Técnico:</strong></td>
+      <td>${data.tecnico}</td>
+    </tr>
+    <tr>
+      <td><strong>Ubicación:</strong></td>
+      <td>${data.ubicacionPrueba}</td>
+      <td><strong>Fecha:</strong></td>
+      <td>${data.fechaDescenso}</td>
+    </tr>
+    <tr>
+      <td><strong>Tipo Ancla:</strong></td>
+      <td>${data.tipoAncla}</td>
+      <td><strong>Largo:</strong></td>
+      <td>${data.largo}</td>
+    </tr>
+    <tr>
+      <td><strong>Diámetro:</strong></td>
+      <td>${data.diametro}</td>
+      <td><strong>Calidad Roca:</strong></td>
+      <td>${data.calidadRoca}</td>
+    </tr>
+  </table>
+
+  <h3>PRUEBAS DE RESISTENCIA</h3>
+  <table class="pruebas-table">
+    <thead>
+      <tr>
+        <th>#PRUEBA</th>
+        <th>TIPO ANCLA</th>
+        <th>LONGITUD</th>
+        <th>DIÁMETRO</th>
+        <th>RESISTENCIA (ton)</th>
+        <th>OBSERVACIONES</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${data.pruebas.map(p => `
+        <tr>
+          <td>${p.id}</td>
+          <td>${data.tipoAncla}</td>
+          <td>${data.largo}</td>
+          <td>${data.diametro}</td>
+          <td>${p.resistencia}</td>
+          <td>${p.observaciones}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+
+  <h3>GRÁFICA DE RESISTENCIAS</h3>
+<div class="chart">
+  <div class="chart-bars">
+    ${(() => {
+      const resistencias = data.pruebas.map(p => Number(p.resistencia) || 0);
+      const maxResistencia = Math.max(...resistencias, 1); // Evitar división entre 0
+      return data.pruebas.map(p => {
+        const resistencia = Number(p.resistencia) || 0;
+        const height = `${(resistencia / maxResistencia) * 100}%`;
+        return `
+          <div class="bar-wrapper">
+            <div class="chart-bar" style="height: ${height};">
+              <div class="bar-value">${resistencia.toFixed(1)}t</div>
+            </div>
+            <div class="bar-label">P${p.id}</div>
+          </div>
+        `;
+      }).join('');
+    })()}
+  </div>
+</div>
+
+  ${data.fotos.length > 0 ? `
+    <h3>FOTOS DE INSPECCIÓN</h3>
+    ${data.fotos.map(foto => `
+      <div class="foto-container">
+        <img class="foto" src="data:image/jpeg;base64,${foto.base64}" />
+        <p><strong>Observaciones:</strong> ${foto.observaciones || 'Ninguna'}</p>
       </div>
+    `).join('')}
+  ` : ''}
 
-      <div class="report-title">Informe de Inspección de Campo</div>
-      <div class="report-subtitle">Unidad Minera: ${data.unidadMinera}</div>
+  <h3>RECOMENDACIONES GENERALES</h3>
+  <p>${data.recomendaciones || 'Ninguna'}</p>
 
-      <div class="section">
-        <div class="section-title">1. Información General</div>
-        <div class="data-grid">
-          <div class="data-item">
-            <div class="data-label">E.Mina:</div>
-            <div class="data-value">${data.emina}</div>
-          </div>
-          <div class="data-item">
-            <div class="data-label">Unidad Minera:</div>
-            <div class="data-value">${data.unidadMinera}</div>
-          </div>
-          <div class="data-item">
-            <div class="data-label">Ubicación de prueba:</div>
-            <div class="data-value">${data.ubicacionPrueba}</div>
-          </div>
-          <div class="data-item">
-            <div class="data-label">Fecha de inspección:</div>
-            <div class="data-value">${getCurrentDate()}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">2. Condiciones Técnicas</div>
-        <div class="data-grid">
-          <div class="data-item">
-            <div class="data-label">Calidad de Roca:</div>
-            <div class="data-value">${data.calidadRoca}</div>
-          </div>
-          <div class="data-item">
-            <div class="data-label">Temperatura ambiente:</div>
-            <div class="data-value">${data.temperaturaAmbiente}°C</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">3. Personal Técnico</div>
-        <div class="data-grid">
-          <div class="data-item">
-            <div class="data-label">Técnico responsable:</div>
-            <div class="data-value">${data.tecnico}</div>
-          </div>
-          <div class="data-item">
-            <div class="data-label">Auxiliar técnico:</div>
-            <div class="data-value">${data.auxiliar}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">4. Especificaciones de Anclaje</div>
-        <div class="data-grid">
-          <div class="data-item">
-            <div class="data-label">Tipo de Ancla:</div>
-            <div class="data-value">${data.tipoAncla}</div>
-          </div>
-          <div class="data-item">
-            <div class="data-label">Largo:</div>
-            <div class="data-value">${data.largo}</div>
-          </div>
-          <div class="data-item">
-            <div class="data-label">Ancho:</div>
-            <div class="data-value">${data.ancho}</div>
-          </div>
-        </div>
-      </div>
-
-      ${fotoSection}
-
-      <div class="signature-area">
-        <div class="signature">
-          <div>_________________________</div>
-          <div>Firma del Técnico</div>
-          <div>${data.tecnico}</div>
-        </div>
-        <div class="signature">
-          <div>_________________________</div>
-          <div>Vo.Bo. Supervisor</div>
-          <div></div>
-        </div>
-      </div>
-
-      <div class="footer">
-        <p>Este documento es un reporte oficial de inspección minera. Generado el ${getCurrentDate()}.</p>
-        <p>© ${new Date().getFullYear()} - Sistema de Reportes Mineros</p>
-      </div>
+  <div style="width: 100%; margin-top: 50px;">
+    <div class="firma">
+      <p>_________________________</p>
+      <p><strong>Técnico Responsable</strong></p>
+      <p>${data.tecnico}</p>
     </div>
-  </body>
+    <div class="firma" style="float: right;">
+      <p>_________________________</p>
+      <p><strong>Supervisor</strong></p>
+    </div>
+  </div>
+</body>
 </html>
   `;
 };
 
-// Función principal para crear y guardar el PDF
-export const createPDF = async (formData: FormData) => {
+export const createPDF = async (data: FormData): Promise<string> => {
   try {
-    const html = generateHTML(formData);
+    const html = generateHTML(data);
     const { uri } = await Print.printToFileAsync({ html });
-    return { filePath: uri };
+    return uri;
   } catch (error) {
-    console.error('Error al generar PDF:', error);
+    console.error('PDF Generation Error:', error);
     throw error;
   }
 };
 
-// Compartir el PDF generado
-export const sharePDF = async (filePath: string) => {
+export const sharePDF = async (fileUri: string): Promise<void> => {
+  if (!(await Sharing.isAvailableAsync())) {
+    Alert.alert("Error", "La función de compartir no está disponible en tu dispositivo");
+    return;
+  }
+  
   try {
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(filePath);
-    }
+    await Sharing.shareAsync(fileUri);
   } catch (error) {
-    console.error('Error al compartir el PDF:', error);
-    throw error;
+    console.error('Sharing Error:', error);
+    Alert.alert("Error", "No se pudo compartir el PDF");
   }
 };
-
-
-
-function getCurrentDate(): string {
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, '0');
-  const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-  const year = now.getFullYear();
-  return `${day}/${month}/${year}`;
-}

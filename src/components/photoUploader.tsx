@@ -1,57 +1,64 @@
-// src/components/PhotoUploader.tsx
-import { Button, Image, View, Text, StyleSheet } from "react-native";
+// src/components/photoUploader.tsx
+import React from "react";
+import { View, Image, Text, Button, StyleSheet } from "react-native";
 
-type PhotoUploaderProps = {
+interface PhotoUploaderProps {
   fotoUri?: string;
   onTakePhoto: () => void;
-  onSelectPhoto: () => void;
-};
+}
 
-export const PhotoUploader = ({ fotoUri, onTakePhoto, onSelectPhoto }: PhotoUploaderProps) => (
-  <View style={styles.photoContainer}>
-    {fotoUri ? (
-      <Image source={{ uri: fotoUri }} style={styles.photo} />
-    ) : (
-      <Text style={styles.noPhotoText}>No hay foto seleccionada</Text>
-    )}
-    <View style={styles.photoButtons}>
-      <View style={styles.photoButton}>
-        <Button title="Tomar Foto" onPress={onTakePhoto} color="#D14836" />
-      </View>
-      <View style={styles.photoButton}>
-        <Button title="Seleccionar" onPress={onSelectPhoto} color="#555" />
+export const PhotoUploader: React.FC<PhotoUploaderProps> = ({ 
+  fotoUri, 
+  onTakePhoto 
+}) => {
+  return (
+    <View style={styles.container}>
+      {fotoUri ? (
+        <Image source={{ uri: fotoUri }} style={styles.image} />
+      ) : (
+        <View style={styles.placeholder}>
+          <Text style={styles.placeholderText}>No hay foto seleccionada</Text>
+        </View>
+      )}
+      
+      <View style={styles.button}>
+        <Button 
+          title="Tomar Foto" 
+          onPress={onTakePhoto} 
+          color="#D14836"
+        />
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
-  photoContainer: {
-    marginBottom: 15,
-    alignItems: 'center',
+  container: {
+    marginBottom: 16,
   },
-  photo: {
+  image: {
     width: '100%',
     height: 200,
-    marginBottom: 10,
-    resizeMode: 'contain',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
+    borderRadius: 8,
+    marginBottom: 8,
+    resizeMode: 'cover',
   },
-  noPhotoText: {
-    color: '#999',
-    marginBottom: 10,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  photoButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  placeholder: {
     width: '100%',
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  photoButton: {
-    flex: 1,
-    marginHorizontal: 5,
+  placeholderText: {
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  button: {
+    alignSelf: 'flex-start',
   },
 });
+
+export default PhotoUploader;

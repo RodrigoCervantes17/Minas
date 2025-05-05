@@ -14,15 +14,16 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
-        "permissions": [
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_MEDIA_IMAGES", 
-        "android.permission.POST_NOTIFICATIONS" 
+    "android.permission.RECORD_AUDIO",
+    "android.permission.READ_MEDIA_IMAGES",
+    "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "compileSdkVersion": 34,
-      "targetSdkVersion": 34
-      },
+      "targetSdkVersion": 34,
       "package": "com.anonymous.Mineria"
     },
     "web": {
@@ -46,9 +47,6 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {
-        "origin": false
-      },
       "eas": {
         "projectId": "962f719b-6ba0-4ff5-80ea-750a7d4fe263"
       }
