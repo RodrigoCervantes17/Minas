@@ -1,9 +1,18 @@
 // src/components/Formulario.tsx
-import React, { useState } from "react";
-import { 
-  View, ScrollView, Button, Alert, 
-  TouchableWithoutFeedback, Keyboard,
-  Text, StyleSheet, Image, FlatList
+
+import React, { useRef, useState } from "react";
+import {
+  View,
+  ScrollView,
+  Button,
+  Alert,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Dimensions,
+  StyleSheet,
+  Text,
+  Image,
+  FlatList
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
@@ -11,20 +20,16 @@ import { useCamera } from "../hooks/useCamera";
 import { createPDF, sharePDF } from "../../services/pdfService";
 import { FormData, PruebaAnclaje, FotoInspeccion } from "../../types/types";
 import { validateForm } from "../utils/formUtils";
+import * as FileSystem from "expo-file-system";
+import ViewShot, { captureRef } from "react-native-view-shot";
+import GraficoResistencias from "./GraficoResistencias";
+
+const screenWidth = Dimensions.get("window").width;
 
 const OPCIONES_ANCLAS = {
-  "Ancla Química": {
-    largos: ["1m", "1.5m", "2m", "2.5m", "3m"],
-    diametros: ["25mm", "28mm", "32mm"]
-  },
-  "Ancla Mecánica": {
-    largos: ["1.2m", "1.8m", "2.4m", "3m", "3.6m"],
-    diametros: ["22mm", "25mm", "28mm"]
-  },
-  "Ancla de Cable": {
-    largos: ["3m", "4m", "5m", "6m", "7m"],
-    diametros: ["15mm", "18mm", "21mm"]
-  }
+  "Ancla Química": { largos: ["1m","1.5m","2m","2.5m","3m"], diametros: ["25mm","28mm","32mm"] },
+  "Ancla Mecánica": { largos: ["1.2m","1.8m","2.4m","3m","3.6m"], diametros: ["22mm","25mm","28mm"] },
+  "Ancla de Cable": { largos: ["3m","4m","5m","6m","7m"], diametros: ["15mm","18mm","21mm"] }
 };
 
 const Formulario: React.FC = () => {
@@ -37,32 +42,23 @@ const Formulario: React.FC = () => {
     equipoBarrenacion: "",
     temperaturaAmbiente: "",
     unidadMinera: "",
-    fechaDescenso: new Date().toISOString().split('T')[0], // Fecha actual por defecto
+    fechaDescenso: new Date().toISOString().split('T')[0],
     tipoAncla: "",
     largo: "",
     diametro: "",
     brocaUsada: "",
     tempAgua: "",
-    pruebas: Array(5).fill(null).map((_, i) => ({
-      id: i + 1,
-      resistencia: "",
-      observaciones: ""
-    })),
+    pruebas: Array(5).fill(null).map((_, i) => ({ id: i+1, resistencia: "", observaciones: "" })),
     fotos: [],
     recomendaciones: ""
   });
-
+  const chartRef = useRef<ViewShot>(null);
   const { takePhoto } = useCamera();
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
   const handleChange = (key: keyof FormData, value: string) => {
     if (key === "tipoAncla") {
-      setFormData(prev => ({ 
-        ...prev, 
-        [key]: value,
-        largo: "",
-        diametro: ""
-      }));
+      setFormData(prev => ({ ...prev, tipoAncla: value, largo: "", diametro: "" }));
     } else {
       setFormData(prev => ({ ...prev, [key]: value }));
     }
@@ -71,49 +67,27 @@ const Formulario: React.FC = () => {
   const handlePruebaChange = (id: number, field: keyof PruebaAnclaje, value: string) => {
     setFormData(prev => ({
       ...prev,
-      pruebas: prev.pruebas.map(p => 
-        p.id === id ? { ...p, [field]: value } : p
-      )
+      pruebas: prev.pruebas.map(p => p.id === id ? { ...p, [field]: value } : p)
     }));
   };
 
   const handleAddPhoto = async () => {
     try {
-      console.log("Iniciando captura de foto...");
       const photo = await takePhoto();
-      console.log("Resultado de takePhoto:", photo);
-      
       if (photo) {
-        // Verificamos que la foto cumpla con la estructura requerida
-        const fotoCompleta: FotoInspeccion = {
-          uri: photo.uri,
-          base64: photo.base64,
-          observaciones: photo.observaciones || '' // Aseguramos que tenga observaciones
-        };
-        
-        setFormData(prev => ({
-          ...prev,
-          fotos: [
-            ...prev.fotos, 
-            fotoCompleta
-          ]
-        }));
+        const fotoCompleta: FotoInspeccion = { uri: photo.uri, base64: photo.base64, observaciones: photo.observaciones || '' };
+        setFormData(prev => ({ ...prev, fotos: [...prev.fotos, fotoCompleta] }));
         Alert.alert("¡Foto agregada!", "La foto se guardó correctamente");
-      } else {
-        console.log("No se obtuvo foto");
-        Alert.alert("Información", "No se seleccionó ninguna foto");
       }
-    } catch (error) {
-      console.error("Error en handleAddPhoto:", error);
-      Alert.alert("Error", "No se pudo agregar la foto: " + (error instanceof Error ? error.message : "Error desconocido"));
+    } catch (err) {
+      Alert.alert("Error", "No se pudo agregar la foto");
     }
   };
 
   const handlePhotoObservationChange = (index: number, text: string) => {
     setFormData(prev => {
-      const newFotos = [...prev.fotos];
-      newFotos[index].observaciones = text;
-      return { ...prev, fotos: newFotos };
+      const fotos = [...prev.fotos]; fotos[index].observaciones = text;
+      return { ...prev, fotos };
     });
   };
 
@@ -122,13 +96,18 @@ const Formulario: React.FC = () => {
       Alert.alert("Error", "Por favor complete los campos obligatorios");
       return;
     }
-    
     try {
       setGeneratingPDF(true);
-      const pdfUri = await createPDF(formData);
+      // Captura gráfica oculta
+      const uri = await captureRef(chartRef, { 
+        format: 'png',
+        quality: 1,
+        width: 800,
+        height: 260,});
+      const chartBase64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const pdfUri = await createPDF(formData, chartBase64);
       await sharePDF(pdfUri);
-    } catch (error) {
-      console.error(error);
+    } catch {
       Alert.alert("Error", "No se pudo generar el PDF");
     } finally {
       setGeneratingPDF(false);
@@ -142,8 +121,8 @@ const Formulario: React.FC = () => {
         style={styles.pruebaInput}
         placeholder="Resistencia (ton)"
         value={item.resistencia}
-        onChangeText={text => handlePruebaChange(item.id, 'resistencia', text)}
         keyboardType="numeric"
+        onChangeText={text => handlePruebaChange(item.id, 'resistencia', text)}
       />
       <TextInput
         style={styles.pruebaInput}
@@ -161,17 +140,18 @@ const Formulario: React.FC = () => {
         style={styles.photoObservation}
         placeholder="Observaciones de la foto"
         value={item.observaciones}
-        onChangeText={text => handlePhotoObservationChange(index, text)}
         multiline
+        onChangeText={text => handlePhotoObservationChange(index, text)}
       />
     </View>
   );
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        {/* Sección de Información General */}
-        <View style={styles.section}>
+      <View style={{ flex: 1 }}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+          {/* Datos Generales */}
+          <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información General</Text>
           
           <TextInput
@@ -181,8 +161,6 @@ const Formulario: React.FC = () => {
             mode="outlined"
             style={styles.input}
           />
-          
-          {/* ... (resto de campos de formulario) ... */}
           
           <TextInput
             label="Técnico"
@@ -313,94 +291,85 @@ const Formulario: React.FC = () => {
           />
         </View>
 
-        {/* Sección de Pruebas */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pruebas de Resistencia</Text>
-          <FlatList
-            data={formData.pruebas}
-            renderItem={renderPruebaItem}
-            keyExtractor={item => item.id.toString()}
-            scrollEnabled={false}
-          />
-        </View>
-
-        {/* Sección de Fotos */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fotos (Opcional)</Text>
-          <Button 
-            title="Agregar Foto" 
-            onPress={handleAddPhoto} 
-            color="#D14836"
-          />
-          
-          {formData.fotos.length > 0 ? (
+          {/* Pruebas de Resistencia */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Pruebas de Resistencia</Text>
             <FlatList
-              data={formData.fotos}
-              renderItem={renderPhotoItem}
-              keyExtractor={(item, index) => index.toString()}
+              data={formData.pruebas}
+              renderItem={renderPruebaItem}
+              keyExtractor={item => item.id.toString()}
               scrollEnabled={false}
             />
-          ) : (
-            <Text style={styles.noPhotosText}>No hay fotos agregadas</Text>
-          )}
-        </View>
+          </View>
 
-        {/* Sección de Recomendaciones */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recomendaciones Generales</Text>
-          <TextInput
-            label="Escriba aquí sus recomendaciones"
-            value={formData.recomendaciones}
-            onChangeText={text => handleChange('recomendaciones', text)}
-            mode="outlined"
-            multiline
-            numberOfLines={4}
-            style={[styles.input, styles.multilineInput]}
-          />
-        </View>
+          {/* Fotos Opcionales */}
+          <View style={styles.section}>
+            <Button title="Agregar Foto" color="#D14836" onPress={handleAddPhoto} />
+            {formData.fotos.length ? (
+              <FlatList
+                data={formData.fotos}
+                renderItem={renderPhotoItem}
+                keyExtractor={(_, i) => i.toString()}
+                scrollEnabled={false}
+              />
+            ) : <Text style={styles.noPhotosText}>No hay fotos</Text>}
+          </View>
 
-        {/* Botón de Generar PDF */}
-        <View style={styles.buttonContainer}>
-          <Button 
-            title="Generar Reporte PDF" 
-            onPress={handleGeneratePDF} 
-            disabled={generatingPDF}
-            color="#D14836"
-          />
+          {/* Recomendaciones */}
+          <View style={styles.section}>
+            <TextInput
+              label="Recomendaciones"
+              multiline
+              numberOfLines={4}
+              style={[styles.input, styles.multilineInput]}
+              value={formData.recomendaciones}
+              onChangeText={text => handleChange('recomendaciones', text)}
+            />
+          </View>
+
+          {/* Botón PDF */}
+          <View style={styles.buttonContainer}>
+            <Button
+              title="Generar Reporte PDF"
+              onPress={handleGeneratePDF}
+              disabled={generatingPDF}
+              color="#D14836"
+            />
+          </View>
+        </ScrollView>
+
+        {/* Gráfico invisible para PDF */}
+        <View style={{
+          position: 'absolute',
+          top: Dimensions.get('window').height + 100,
+          width: screenWidth,
+          height: 260,
+          opacity: 0
+        }}>
+          <ViewShot ref={chartRef} options={{ format: 'png', quality: 1 }}>
+            <GraficoResistencias datos={formData.pruebas.map(p => parseFloat(p.resistencia) || 0)} />
+          </ViewShot>
         </View>
-      </ScrollView>
+      </View>
     </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
-  },
-  input: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-  },
-  multilineInput: {
-    minHeight: 100,
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  contentContainer: { padding: 16 },
+  section: { backgroundColor: '#fff', borderRadius: 8, padding: 16, marginBottom: 16, elevation: 2 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#333' },
+  input: { backgroundColor: '#fff', marginBottom: 12 },
+  multilineInput: { minHeight: 80 },
+  pruebaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  pruebaLabel: { width: 80, fontWeight: 'bold', marginRight: 8 },
+  pruebaInput: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 4, padding: 8, backgroundColor: '#fff', marginRight: 8 },
+  photoItem: { marginTop: 12 },
+  photo: { width: '100%', height: 200, borderRadius: 4, marginBottom: 8 },
+  photoObservation: { borderWidth: 1, borderColor: '#ddd', borderRadius: 4, padding: 8, backgroundColor: '#fff' },
+  noPhotosText: { fontStyle: 'italic', color: '#666', textAlign: 'center', marginTop: 8 },
+  buttonContainer: { marginVertical: 16 },
   pickerContainer: {
     marginBottom: 12,
     borderWidth: 1,
@@ -416,49 +385,6 @@ const styles = StyleSheet.create({
   },
   picker: {
     backgroundColor: '#fff',
-  },
-  pruebaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  pruebaLabel: {
-    width: 80,
-    fontWeight: 'bold',
-    marginRight: 8,
-  },
-  pruebaInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    padding: 8,
-    backgroundColor: '#fff',
-  },
-  photoItem: {
-    marginTop: 12,
-  },
-  photo: {
-    width: '100%',
-    height: 200,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  photoObservation: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    padding: 8,
-    backgroundColor: '#fff',
-  },
-  buttonContainer: {
-    marginVertical: 16,
-  },
-  noPhotosText: {
-    textAlign: 'center',
-    marginTop: 16,
-    color: '#666',
-    fontStyle: 'italic',
   }
 });
 
