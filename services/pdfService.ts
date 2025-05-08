@@ -1,240 +1,131 @@
-// services/pdfService.ts
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-import { Alert } from 'react-native';
-import { FormData } from '../types/types';
+// === PDFSERVICE.TS ===
 
-const generateHTML = (data: FormData): string => {
-  return `
- <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 20px;
-      color: #333;
-    }
+import * as Print from "expo-print";
+import { FormData } from "../types/types";
+import { shareAsync } from "expo-sharing";
+import { manipulateAsync } from "expo-image-manipulator";
 
-    .header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .info-table, .pruebas-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 30px;
-    }
-
-    .info-table td, .pruebas-table th, .pruebas-table td {
-      padding: 8px;
-      border: 1px solid #ddd;
-    }
-
-    .pruebas-table th {
-      background-color: #f0f0f0;
-    }
-
-    .chart {
-      width: 100%;
-      height: 300px;
-      background: #f5f5f5;
-      margin: 20px 0;
-      padding: 10px;
-      box-sizing: border-box;
-      overflow-x: auto;
-    }
-
-    .chart-bars {
-      display: flex;
-      align-items: flex-end;
-      height: 100%;
-      gap: 10px;
-    }
-
-    .bar-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 40px;
-    }
-
-    .chart-bar {
-      background: #D14836;
-      width: 100%;
-      position: relative;
-      border-radius: 5px 5px 0 0;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      color: white;
-      font-size: 12px;
-      transition: height 0.3s ease;
-    }
-
-    .bar-value {
-      margin-bottom: 4px;
-    }
-
-    .bar-label {
-      margin-top: 5px;
-      font-size: 12px;
-    }
-
-    .foto-container {
-      margin: 15px 0;
-      page-break-inside: avoid;
-    }
-
-    .foto {
-      max-width: 100%;
-      max-height: 300px;
-    }
-
-    .firma {
-      margin-top: 50px;
-      width: 45%;
-      display: inline-block;
-    }
-
-    .page-break {
-      page-break-after: always;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>REPORTE TÉCNICO DE ANCLAJE</h1>
-    <h3>${data.unidadMinera}</h3>
-  </div>
-
-  <table class="info-table">
+export async function createPDF(formData: FormData, chartBase64?: string): Promise<string> {
+  const pruebasHTML = formData.pruebas.map(p => `
     <tr>
-      <td><strong>E.Mina:</strong></td>
-      <td>${data.emina}</td>
-      <td><strong>Técnico:</strong></td>
-      <td>${data.tecnico}</td>
-    </tr>
-    <tr>
-      <td><strong>Ubicación:</strong></td>
-      <td>${data.ubicacionPrueba}</td>
-      <td><strong>Fecha:</strong></td>
-      <td>${data.fechaDescenso}</td>
-    </tr>
-    <tr>
-      <td><strong>Tipo Ancla:</strong></td>
-      <td>${data.tipoAncla}</td>
-      <td><strong>Largo:</strong></td>
-      <td>${data.largo}</td>
-    </tr>
-    <tr>
-      <td><strong>Diámetro:</strong></td>
-      <td>${data.diametro}</td>
-      <td><strong>Calidad Roca:</strong></td>
-      <td>${data.calidadRoca}</td>
-    </tr>
-  </table>
+      <td>${p.id}</td>
+      <td>${formData.tipoAncla}</td>
+      <td>${formData.largo}</td>
+      <td>${formData.diametro}</td>
+      <td>${p.resistencia}</td>
+      <td>${p.observaciones}</td>
+    </tr>`).join('');
 
-  <h3>PRUEBAS DE RESISTENCIA</h3>
-  <table class="pruebas-table">
-    <thead>
-      <tr>
-        <th>#PRUEBA</th>
-        <th>TIPO ANCLA</th>
-        <th>LONGITUD</th>
-        <th>DIÁMETRO</th>
-        <th>RESISTENCIA (ton)</th>
-        <th>OBSERVACIONES</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${data.pruebas.map(p => `
-        <tr>
-          <td>${p.id}</td>
-          <td>${data.tipoAncla}</td>
-          <td>${data.largo}</td>
-          <td>${data.diametro}</td>
-          <td>${p.resistencia}</td>
-          <td>${p.observaciones}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>
+  const fotosHTML = formData.fotos.map(foto => `
+    <div class="foto">
+      <img src="data:image/jpeg;base64,${foto.base64}" />
+      <p><strong>Observaciones:</strong> ${foto.observaciones}</p>
+    </div>`).join('');
 
-  <h3>GRÁFICA DE RESISTENCIAS</h3>
-<div class="chart">
-  <div class="chart-bars">
-    ${(() => {
-      const resistencias = data.pruebas.map(p => Number(p.resistencia) || 0);
-      const maxResistencia = Math.max(...resistencias, 1); // Evitar división entre 0
-      return data.pruebas.map(p => {
-        const resistencia = Number(p.resistencia) || 0;
-        const height = `${(resistencia / maxResistencia) * 100}%`;
-        return `
-          <div class="bar-wrapper">
-            <div class="chart-bar" style="height: ${height};">
-              <div class="bar-value">${resistencia.toFixed(1)}t</div>
-            </div>
-            <div class="bar-label">P${p.id}</div>
-          </div>
-        `;
-      }).join('');
-    })()}
-  </div>
-</div>
+  const graficoHTML = chartBase64 ? `
+    <h3>RESISTENCIA</h3>
+    <img class="grafico" src="data:image/png;base64,${chartBase64}" />
+  ` : '';
 
-  ${data.fotos.length > 0 ? `
-    <h3>FOTOS DE INSPECCIÓN</h3>
-    ${data.fotos.map(foto => `
-      <div class="foto-container">
-        <img class="foto" src="data:image/jpeg;base64,${foto.base64}" />
-        <p><strong>Observaciones:</strong> ${foto.observaciones || 'Ninguna'}</p>
-      </div>
-    `).join('')}
-  ` : ''}
+  const html = `
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 24px;
+            color: #000;
+          }
+          h1 {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 22px;
+            text-transform: uppercase;
+          }
+          .header-table, .prueba-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+          }
+          .header-table td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            font-size: 12px;
+          }
+          .prueba-table th, .prueba-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: center;
+            font-size: 12px;
+          }
+          .prueba-table th {
+            background-color: #eee;
+          }
+          .foto img, .grafico {
+            width: 100%;
+            max-width: none;
+            border: 1px solid #ccc;
+            margin: 0 auto;
+          }
+          .section {
+            margin-top: 24px;
+          }
+          .section h3 {
+            margin-bottom: 8px;
+            font-size: 16px;
+            border-bottom: 1px solid #000;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>REPORTE TECNICO GIZ</h1>
 
-  <h3>RECOMENDACIONES GENERALES</h3>
-  <p>${data.recomendaciones || 'Ninguna'}</p>
+        <table class="header-table">
+          <tr><td><strong>E. MINA</strong></td><td>${formData.emina}</td><td><strong>UNIDAD MINERA</strong></td><td>${formData.unidadMinera}</td></tr>
+          <tr><td><strong>TECNICO</strong></td><td>${formData.tecnico}</td><td><strong>FECHA DE DESCENSO</strong></td><td>${formData.fechaDescenso}</td></tr>
+          <tr><td><strong>AUXILIAR</strong></td><td>${formData.auxiliar}</td><td><strong>TIPO DE ANCLA</strong></td><td>${formData.tipoAncla}</td></tr>
+          <tr><td><strong>UBICACION DE PRUEBA</strong></td><td>${formData.ubicacionPrueba}</td><td><strong>LARGO</strong></td><td>${formData.largo}</td></tr>
+          <tr><td><strong>CALIDAD DE LA ROCA</strong></td><td>${formData.calidadRoca}</td><td><strong>DIAMETRO</strong></td><td>${formData.diametro}</td></tr>
+          <tr><td><strong>EQUIPO DE BARRENACION</strong></td><td>${formData.equipoBarrenacion}</td><td><strong>BROCA USADA</strong></td><td>${formData.brocaUsada}</td></tr>
+          <tr><td><strong>TEMP. AMBIENTE</strong></td><td>${formData.temperaturaAmbiente} °C</td><td><strong>TEMP. DEL AGUA</strong></td><td>${formData.tempAgua} °C</td></tr>
+        </table>
 
-  <div style="width: 100%; margin-top: 50px;">
-    <div class="firma">
-      <p>_________________________</p>
-      <p><strong>Técnico Responsable</strong></p>
-      <p>${data.tecnico}</p>
-    </div>
-    <div class="firma" style="float: right;">
-      <p>_________________________</p>
-      <p><strong>Supervisor</strong></p>
-    </div>
-  </div>
-</body>
-</html>
+        <h3>PRUEBAS</h3>
+        <table class="prueba-table">
+          <thead>
+            <tr>
+              <th>#PRUEBA</th>
+              <th>ANCLA</th>
+              <th>LONGITUD</th>
+              <th>DIAMETRO</th>
+              <th>RESISTENCIA</th>
+              <th>OBSERVACIONES</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pruebasHTML}
+          </tbody>
+        </table>
+
+        ${graficoHTML}
+
+        <div class="section">
+          <h3>RECOMENDACIONES GENERALES</h3>
+          <p>${formData.recomendaciones}</p>
+        </div>
+
+        <div class="section">
+          <h3>FOTOS</h3>
+          ${fotosHTML || '<p>No se registraron fotos.</p>'}
+        </div>
+      </body>
+    </html>
   `;
-};
 
-export const createPDF = async (data: FormData): Promise<string> => {
-  try {
-    const html = generateHTML(data);
-    const { uri } = await Print.printToFileAsync({ html });
-    return uri;
-  } catch (error) {
-    console.error('PDF Generation Error:', error);
-    throw error;
-  }
-};
+  const { uri } = await Print.printToFileAsync({ html });
+  return uri;
+}
 
-export const sharePDF = async (fileUri: string): Promise<void> => {
-  if (!(await Sharing.isAvailableAsync())) {
-    Alert.alert("Error", "La función de compartir no está disponible en tu dispositivo");
-    return;
-  }
-  
-  try {
-    await Sharing.shareAsync(fileUri);
-  } catch (error) {
-    console.error('Sharing Error:', error);
-    Alert.alert("Error", "No se pudo compartir el PDF");
-  }
-};
+export async function sharePDF(uri: string) {
+  await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+}
