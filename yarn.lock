@@ -2177,6 +2177,21 @@
   dependencies:
     undici-types "~6.21.0"
 
+"@types/pdfkit@*":
+  version "0.13.9"
+  resolved "https://registry.npmjs.org/@types/pdfkit/-/pdfkit-0.13.9.tgz"
+  integrity sha512-RDG8Yb1zT7I01FfpwK7nMSA433XWpblMqSCtA5vJlSyavWZb303HUYPCel6JTiDDFqwGLvtAnYbH8N/e0Cb89g==
+  dependencies:
+    "@types/node" "*"
+
+"@types/pdfmake@^0.2.11":
+  version "0.2.11"
+  resolved "https://registry.npmjs.org/@types/pdfmake/-/pdfmake-0.2.11.tgz"
+  integrity sha512-gglgMQhnG6C2kco13DJlvokqTxL+XKxHwCejElH8fSCNF9ZCkRK6Mzo011jQ0zuug+YlIgn6BpcpZrARyWdW3Q==
+  dependencies:
+    "@types/node" "*"
+    "@types/pdfkit" "*"
+
 "@types/prop-types@*":
   version "15.7.14"
   resolved "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.14.tgz"
@@ -6647,10 +6662,10 @@ react-native-share@^12.0.9:
   resolved "https://registry.npmjs.org/react-native-share/-/react-native-share-12.0.9.tgz"
   integrity sha512-vSuz/9aF+/AZS3I5NC19MrB56h1Yivk2Yz8lf2d8Szv3KuRw2BnDI/AfCTjMWByJLVYr6xgzfkTkAfvbDGzxLQ==
 
-"react-native-svg@> 6.4.1":
-  version "15.11.2"
-  resolved "https://registry.npmjs.org/react-native-svg/-/react-native-svg-15.11.2.tgz"
-  integrity sha512-+YfF72IbWQUKzCIydlijV1fLuBsQNGMT6Da2kFlo1sh+LE3BIm/2Q7AR1zAAR6L0BFLi1WaQPLfFUC9bNZpOmw==
+"react-native-svg@> 6.4.1", react-native-svg@15.8.0:
+  version "15.8.0"
+  resolved "https://registry.npmjs.org/react-native-svg/-/react-native-svg-15.8.0.tgz"
+  integrity sha512-KHJzKpgOjwj1qeZzsBjxNdoIgv2zNCO9fVcoq2TEhTRsVV5DGTZ9JzUZwybd7q4giT/H3RdtqC3u44dWdO0Ffw==
   dependencies:
     css-select "^5.1.0"
     css-tree "^1.1.3"

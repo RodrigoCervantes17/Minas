@@ -48,7 +48,9 @@ export const useCamera = () => {
         return {
           uri: result.assets[0].uri,
           base64: result.assets[0].base64 || '',
-          observaciones: ''
+          observaciones: '',
+          recomendaciones: [],
+          recomendacionIndividual: ''
         };
       }
       return null;

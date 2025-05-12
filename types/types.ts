@@ -16,6 +16,8 @@ export interface FotoInspeccion {
   uri: string;
   base64: string;
   observaciones: string;
+  recomendaciones: string[];
+  recomendacionIndividual: string;
 }
 
 export interface FormData {
