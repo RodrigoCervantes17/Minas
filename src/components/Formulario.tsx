@@ -27,9 +27,18 @@ import GraficoResistencias from "./GraficoResistencias";
 const screenWidth = Dimensions.get("window").width;
 
 const OPCIONES_ANCLAS = {
-  "Ancla Química": { largos: ["1m","1.5m","2m","2.5m","3m"], diametros: ["25mm","28mm","32mm"] },
-  "Ancla Mecánica": { largos: ["1.2m","1.8m","2.4m","3m","3.6m"], diametros: ["22mm","25mm","28mm"] },
-  "Ancla de Cable": { largos: ["3m","4m","5m","6m","7m"], diametros: ["15mm","18mm","21mm"] }
+  "Ancla Química": {
+    largos: ["1m", "1.5m", "2m", "2.5m", "3m"],
+    diametros: ["25mm", "28mm", "32mm"]
+  },
+  "Ancla Mecánica": {
+    largos: ["1.2m", "1.8m", "2.4m", "3m", "3.6m"],
+    diametros: ["22mm", "25mm", "28mm"]
+  },
+  "Ancla de Cable": {
+    largos: ["3m", "4m", "5m", "6m", "7m"],
+    diametros: ["15mm", "18mm", "21mm"]
+  }
 };
 
 const Formulario: React.FC = () => {
@@ -48,11 +57,11 @@ const Formulario: React.FC = () => {
     diametro: "",
     brocaUsada: "",
     tempAgua: "",
-    pruebas: Array(5).fill(null).map((_, i) => ({ id: i+1, resistencia: "", observaciones: "" })),
+    pruebas: Array(5).fill(null).map((_, i) => ({ id: i + 1, resistencia: "", observaciones: "" })),
     fotos: [],
     recomendaciones: ""
   });
-  const chartRef = useRef<ViewShot>(null);
+  const chartRef = useRef<any>(null);
   const { takePhoto } = useCamera();
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
@@ -71,6 +80,16 @@ const Formulario: React.FC = () => {
     }));
   };
 
+  const handleAddPrueba = () => {
+    setFormData(prev => {
+      const newId = prev.pruebas.length + 1;
+      return {
+        ...prev,
+        pruebas: [...prev.pruebas, { id: newId, resistencia: "", observaciones: "" }]
+      };
+    });
+  };
+
   const handleAddPhoto = async () => {
     try {
       const photo = await takePhoto();
@@ -79,14 +98,15 @@ const Formulario: React.FC = () => {
         setFormData(prev => ({ ...prev, fotos: [...prev.fotos, fotoCompleta] }));
         Alert.alert("¡Foto agregada!", "La foto se guardó correctamente");
       }
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "No se pudo agregar la foto");
     }
   };
 
   const handlePhotoObservationChange = (index: number, text: string) => {
     setFormData(prev => {
-      const fotos = [...prev.fotos]; fotos[index].observaciones = text;
+      const fotos = [...prev.fotos];
+      fotos[index].observaciones = text;
       return { ...prev, fotos };
     });
   };
@@ -98,12 +118,7 @@ const Formulario: React.FC = () => {
     }
     try {
       setGeneratingPDF(true);
-      // Captura gráfica oculta
-      const uri = await captureRef(chartRef, { 
-        format: 'png',
-        quality: 1,
-        width: 800,
-        height: 260,});
+      const uri = await captureRef(chartRef, { format: 'png', quality: 1 });
       const chartBase64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
       const pdfUri = await createPDF(formData, chartBase64);
       await sharePDF(pdfUri);
@@ -133,7 +148,7 @@ const Formulario: React.FC = () => {
     </View>
   );
 
-  const renderPhotoItem = ({ item, index }: { item: FotoInspeccion, index: number }) => (
+  const renderPhotoItem = ({ item, index }: { item: FotoInspeccion; index: number }) => (
     <View style={styles.photoItem}>
       <Image source={{ uri: item.uri }} style={styles.photo} />
       <TextInput
@@ -150,150 +165,140 @@ const Formulario: React.FC = () => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={{ flex: 1 }}>
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-          {/* Datos Generales */}
+
+          {/* Información General */}
           <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información General</Text>
-          
-          <TextInput
-            label="E.Mina"
-            value={formData.emina}
-            onChangeText={text => handleChange('emina', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Técnico"
-            value={formData.tecnico}
-            onChangeText={text => handleChange('tecnico', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Auxiliar"
-            value={formData.auxiliar}
-            onChangeText={text => handleChange('auxiliar', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Ubicación de Prueba"
-            value={formData.ubicacionPrueba}
-            onChangeText={text => handleChange('ubicacionPrueba', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Calidad de Roca"
-            value={formData.calidadRoca}
-            onChangeText={text => handleChange('calidadRoca', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Equipo de Barrenación"
-            value={formData.equipoBarrenacion}
-            onChangeText={text => handleChange('equipoBarrenacion', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Temperatura Ambiente (°C)"
-            value={formData.temperaturaAmbiente}
-            onChangeText={text => handleChange('temperaturaAmbiente', text)}
-            mode="outlined"
-            keyboardType="numeric"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Unidad Minera"
-            value={formData.unidadMinera}
-            onChangeText={text => handleChange('unidadMinera', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Fecha de Descenso"
-            value={formData.fechaDescenso}
-            onChangeText={text => handleChange('fechaDescenso', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Tipo de Ancla</Text>
-            <Picker
-              selectedValue={formData.tipoAncla}
-              onValueChange={value => handleChange('tipoAncla', value)}
-              style={styles.picker}
-            >
-              <Picker.Item label="Seleccione tipo de ancla" value="" />
-              {Object.keys(OPCIONES_ANCLAS).map(option => (
-                <Picker.Item key={option} label={option} value={option} />
-              ))}
-            </Picker>
+            <Text style={styles.sectionTitle}>Información General</Text>
+            <TextInput
+              label="E.Mina"
+              value={formData.emina}
+              onChangeText={text => handleChange('emina', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Técnico"
+              value={formData.tecnico}
+              onChangeText={text => handleChange('tecnico', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Auxiliar"
+              value={formData.auxiliar}
+              onChangeText={text => handleChange('auxiliar', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Ubicación de Prueba"
+              value={formData.ubicacionPrueba}
+              onChangeText={text => handleChange('ubicacionPrueba', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Calidad de la Roca"
+              value={formData.calidadRoca}
+              onChangeText={text => handleChange('calidadRoca', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Equipo de Barrenación"
+              value={formData.equipoBarrenacion}
+              onChangeText={text => handleChange('equipoBarrenacion', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Temperatura Ambiente (°C)"
+              value={formData.temperaturaAmbiente}
+              onChangeText={text => handleChange('temperaturaAmbiente', text)}
+              mode="outlined"
+              keyboardType="numeric"
+              style={styles.input}
+            />
+            <TextInput
+              label="Unidad Minera"
+              value={formData.unidadMinera}
+              onChangeText={text => handleChange('unidadMinera', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Fecha de Descenso"
+              value={formData.fechaDescenso}
+              onChangeText={text => handleChange('fechaDescenso', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Tipo de Ancla</Text>
+              <Picker
+                selectedValue={formData.tipoAncla}
+                onValueChange={value => handleChange('tipoAncla', value)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Seleccione tipo de ancla" value="" />
+                {Object.keys(OPCIONES_ANCLAS).map(option => (
+                  <Picker.Item key={option} label={option} value={option} />
+                ))}
+              </Picker>
+            </View>
+            {formData.tipoAncla ? (
+              <>
+                <View style={styles.pickerContainer}>
+                  <Text style={styles.pickerLabel}>Largo</Text>
+                  <Picker
+                    selectedValue={formData.largo}
+                    onValueChange={value => handleChange('largo', value)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Seleccione largo" value="" />
+                    {OPCIONES_ANCLAS[formData.tipoAncla].largos.map(l => (
+                      <Picker.Item key={l} label={l} value={l} />
+                    ))}
+                  </Picker>
+                </View>
+                <View style={styles.pickerContainer}>
+                  <Text style={styles.pickerLabel}>Diámetro</Text>
+                  <Picker
+                    selectedValue={formData.diametro}
+                    onValueChange={value => handleChange('diametro', value)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Seleccione diámetro" value="" />
+                    {OPCIONES_ANCLAS[formData.tipoAncla].diametros.map(d => (
+                      <Picker.Item key={d} label={d} value={d} />
+                    ))}
+                  </Picker>
+                </View>
+              </>
+            ) : null}
+            <TextInput
+              label="Broca Usada"
+              value={formData.brocaUsada}
+              onChangeText={text => handleChange('brocaUsada', text)}
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Temperatura del Agua (°C)"
+              value={formData.tempAgua}
+              onChangeText={text => handleChange('tempAgua', text)}
+              mode="outlined"
+              keyboardType="numeric"
+              style={styles.input}
+            />
           </View>
 
-          {formData.tipoAncla && (
-            <>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.pickerLabel}>Largo</Text>
-                <Picker
-                  selectedValue={formData.largo}
-                  onValueChange={value => handleChange('largo', value)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Seleccione largo" value="" />
-                  {OPCIONES_ANCLAS[formData.tipoAncla].largos.map(option => (
-                    <Picker.Item key={option} label={option} value={option} />
-                  ))}
-                </Picker>
-              </View>
-
-              <View style={styles.pickerContainer}>
-                <Text style={styles.pickerLabel}>Diámetro</Text>
-                <Picker
-                  selectedValue={formData.diametro}
-                  onValueChange={value => handleChange('diametro', value)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Seleccione diámetro" value="" />
-                  {OPCIONES_ANCLAS[formData.tipoAncla].diametros.map(option => (
-                    <Picker.Item key={option} label={option} value={option} />
-                  ))}
-                </Picker>
-              </View>
-            </>
-          )}
-          
-          <TextInput
-            label="Broca Usada"
-            value={formData.brocaUsada}
-            onChangeText={text => handleChange('brocaUsada', text)}
-            mode="outlined"
-            style={styles.input}
-          />
-          
-          <TextInput
-            label="Temperatura del Agua (°C)"
-            value={formData.tempAgua}
-            onChangeText={text => handleChange('tempAgua', text)}
-            mode="outlined"
-            keyboardType="numeric"
-            style={styles.input}
-          />
-        </View>
-
-          {/* Pruebas de Resistencia */}
+          {/* Pruebas de Resistencia dinámicas */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pruebas de Resistencia</Text>
+            <View style={styles.pruebasHeader}>
+              <Text style={styles.sectionTitle}>Pruebas de Resistencia</Text>
+              <Button title="Añadir Prueba" onPress={handleAddPrueba} color="#D14836" />
+            </View>
             <FlatList
               data={formData.pruebas}
               renderItem={renderPruebaItem}
@@ -304,26 +309,31 @@ const Formulario: React.FC = () => {
 
           {/* Fotos Opcionales */}
           <View style={styles.section}>
-            <Button title="Agregar Foto" color="#D14836" onPress={handleAddPhoto} />
-            {formData.fotos.length ? (
+            <Text style={styles.sectionTitle}>Fotos (Opcional)</Text>
+            <Button title="Agregar Foto" onPress={handleAddPhoto} color="#D14836" />
+            {formData.fotos.length > 0 ? (
               <FlatList
                 data={formData.fotos}
                 renderItem={renderPhotoItem}
                 keyExtractor={(_, i) => i.toString()}
                 scrollEnabled={false}
               />
-            ) : <Text style={styles.noPhotosText}>No hay fotos</Text>}
+            ) : (
+              <Text style={styles.noPhotosText}>No hay fotos agregadas</Text>
+            )}
           </View>
 
           {/* Recomendaciones */}
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recomendaciones Generales</Text>
             <TextInput
-              label="Recomendaciones"
+              label="Escriba aquí sus recomendaciones"
+              value={formData.recomendaciones}
+              onChangeText={text => handleChange('recomendaciones', text)}
+              mode="outlined"
               multiline
               numberOfLines={4}
               style={[styles.input, styles.multilineInput]}
-              value={formData.recomendaciones}
-              onChangeText={text => handleChange('recomendaciones', text)}
             />
           </View>
 
@@ -338,14 +348,16 @@ const Formulario: React.FC = () => {
           </View>
         </ScrollView>
 
-        {/* Gráfico invisible para PDF */}
-        <View style={{
-          position: 'absolute',
-          top: Dimensions.get('window').height + 100,
-          width: screenWidth,
-          height: 260,
-          opacity: 0
-        }}>
+        {/* Gráfico oculto para PDF */}
+        <View
+          style={{
+            position: 'absolute',
+            top: Dimensions.get('window').height + 100,
+            width: screenWidth,
+            height: 260,
+            opacity: 0
+          }}
+        >
           <ViewShot ref={chartRef} options={{ format: 'png', quality: 1 }}>
             <GraficoResistencias datos={formData.pruebas.map(p => parseFloat(p.resistencia) || 0)} />
           </ViewShot>
@@ -359,33 +371,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   contentContainer: { padding: 16 },
   section: { backgroundColor: '#fff', borderRadius: 8, padding: 16, marginBottom: 16, elevation: 2 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#333' },
-  input: { backgroundColor: '#fff', marginBottom: 12 },
-  multilineInput: { minHeight: 80 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#333' },
+  input: { marginBottom: 12, backgroundColor: '#fff' },
+  multilineInput: { minHeight: 100 },
+  pickerContainer: { marginBottom: 12, borderWidth: 1, borderColor: '#ddd', borderRadius: 4, overflow: 'hidden' },
+  pickerLabel: { fontSize: 12, color: '#666', paddingHorizontal: 12, paddingTop: 8 },
+  picker: { backgroundColor: '#fff' },
+  pruebasHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   pruebaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   pruebaLabel: { width: 80, fontWeight: 'bold', marginRight: 8 },
   pruebaInput: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 4, padding: 8, backgroundColor: '#fff', marginRight: 8 },
   photoItem: { marginTop: 12 },
   photo: { width: '100%', height: 200, borderRadius: 4, marginBottom: 8 },
   photoObservation: { borderWidth: 1, borderColor: '#ddd', borderRadius: 4, padding: 8, backgroundColor: '#fff' },
-  noPhotosText: { fontStyle: 'italic', color: '#666', textAlign: 'center', marginTop: 8 },
-  buttonContainer: { marginVertical: 16 },
-  pickerContainer: {
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  pickerLabel: {
-    fontSize: 12,
-    color: '#666',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-  },
-  picker: {
-    backgroundColor: '#fff',
-  }
+  noPhotosText: { textAlign: 'center', marginTop: 16, color: '#666', fontStyle: 'italic' },
+  buttonContainer: { marginVertical: 16 }
 });
 
 export default Formulario;
