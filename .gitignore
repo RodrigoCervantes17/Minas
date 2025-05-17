@@ -36,6 +36,7 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
-build-1747436110062.aab
-build-1747438907864.apk
+*.apk
+*.aab
+
 android/
