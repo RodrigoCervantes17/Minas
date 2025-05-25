@@ -134,7 +134,8 @@ export async function createPDF(
         .sig-block .line { border-top:1px solid #000; margin-top:48px; }
 
         .page-break { page-break-after: always; }
-      </style>
+      .recomendacion { font-size: 15px; line-height: 1.6; }
+</style>
     </head>
     <body>
       <!-- Página 1 -->
