@@ -36,6 +36,7 @@ const OPCIONES_ANCLAS = {
 };
 
 const Formulario: React.FC = () => {
+  console.log("✅ Componente Formulario montado"); 
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [formData, setFormData] = useState<FormData>({
     emina: "",
@@ -170,22 +171,29 @@ const Formulario: React.FC = () => {
               <Card.Content>
                 <Button onPress={async () => {
                   try {
-                    const photo = await takePhoto();
-                    if (photo) {
-                      const nuevaFoto = {
-                        uri: photo.uri,
-                        base64: photo.base64,
-                        observaciones: "",
-                        recomendaciones: [],
-                        recomendacionIndividual: ""
-                      };
-                      setFormData(prev => ({
-                        ...prev,
-                        fotos: [...prev.fotos, nuevaFoto]
-                      }));
-                    }
-                  } catch {
-                    Alert.alert("Error", "No se pudo agregar la foto");
+  const photo = await takePhoto();
+
+  if (!photo || !photo.uri || !photo.uri.startsWith("file://")) {
+    Alert.alert("Foto inválida", "No se pudo capturar o guardar la foto.");
+    return;
+  }
+
+  const nuevaFoto = {
+    uri: photo.uri,
+    base64: photo.base64 ?? "",
+    observaciones: "",
+    recomendaciones: [],
+    recomendacionIndividual: ""
+  };
+
+  setFormData(prev => ({
+    ...prev,
+    fotos: [...prev.fotos, nuevaFoto]
+  }));
+} catch (err) {
+  console.error("Error al tomar la foto:", err);
+  Alert.alert("Error inesperado", "Ocurrió un problema al tomar la foto.");
+
                   }
                 }} mode="contained" style={{ marginBottom: 8 }}>Agregar Foto</Button>
                 {formData.fotos.map((foto, index) => (

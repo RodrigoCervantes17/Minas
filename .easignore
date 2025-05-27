@@ -1,0 +1,38 @@
+# Ignorar configuración y cosas temporales
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignorar caché
+.expo
+.expo-shared
+.cache
+tmp
+temp
+
+# Ignorar versiones empaquetadas
+*.tar.gz
+
+# Ignorar pruebas y documentación local
+__tests__/
+docs/
+README.md
+*.test.ts
+*.test.tsx
+
+# Ignorar salidas de build externas si las tienes
+web-build/
+build/
+dist/
+
+# Pero NO ignores:
+# node_modules/
+# src/
+# assets/
+# app.json
+# app.config.js
+# eas.json
+# .env (si lo usas, solo pon claves seguras o haz .env.example)
+

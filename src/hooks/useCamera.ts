@@ -1,62 +1,50 @@
 // src/hooks/useCamera.ts
-import * as ImagePicker from 'expo-image-picker';
-import { Alert, Linking } from 'react-native';
-import { FotoInspeccion } from '../../types/types';
+import * as ImagePicker from "expo-image-picker";
+import { Alert } from "react-native";
+
+interface PhotoResult {
+  uri: string;
+  base64: string | null;
+}
 
 export const useCamera = () => {
-  const requestPermission = async () => {
+  const takePhoto = async (): Promise<PhotoResult | null> => {
     try {
-      // Verificar si ImagePicker está disponible
-      if (!ImagePicker.requestCameraPermissionsAsync) {
-        throw new Error('Módulo de cámara no disponible');
-      }
-
+      // Solicitar permisos para usar la cámara
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permiso denegado',
-          'Ve a ajustes y activa los permisos de la cámara',
-          [
-            { text: 'Cancelar' },
-            { text: 'Abrir Ajustes', onPress: () => Linking.openSettings() }
-          ]
-        );
-        return false;
+
+      if (status !== "granted") {
+        Alert.alert("Permiso denegado", "Se requiere permiso para usar la cámara.");
+        return null;
       }
-      return true;
-    } catch (error) {
-      console.error('Error en requestPermission:', error);
-      Alert.alert("Error", "No se pudo acceder a la cámara");
-      return false;
-    }
-  };
 
-  const takePhoto = async (): Promise<FotoInspeccion | null> => {
-    try {
-      const hasPermission = await requestPermission();
-      if (!hasPermission) return null;
-
+      // Lanzar cámara
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [4, 3],
         quality: 0.8,
         base64: true,
       });
 
-      if (!result.canceled && result.assets?.[0]) {
-        return {
-          uri: result.assets[0].uri,
-          base64: result.assets[0].base64 || '',
-          observaciones: '',
-          recomendaciones: [],
-          recomendacionIndividual: ''
-        };
+      // Validar si fue cancelado
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return null;
       }
-      return null;
-    } catch (error) {
-      console.error('Error al tomar foto:', error);
-      Alert.alert("Error", "No se pudo tomar la foto");
+
+      const asset = result.assets[0];
+
+      // Validar que la URI es válida y local
+      if (!asset.uri || !asset.uri.startsWith("file://")) {
+        Alert.alert("Error", "La foto no se guardó correctamente.");
+        return null;
+      }
+
+      return {
+        uri: asset.uri,
+        base64: asset.base64 ?? null,
+      };
+    } catch (err) {
+      console.error("Error en takePhoto:", err);
+      Alert.alert("Error", "Ocurrió un problema al tomar la foto.");
       return null;
     }
   };

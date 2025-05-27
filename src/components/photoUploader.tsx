@@ -13,14 +13,14 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      {fotoUri ? (
+      {fotoUri && fotoUri.startsWith("file://") ? (
         <Image source={{ uri: fotoUri }} style={styles.image} />
       ) : (
         <View style={styles.placeholder}>
           <Text style={styles.placeholderText}>No hay foto seleccionada</Text>
         </View>
       )}
-      
+
       <View style={styles.button}>
         <Button 
           title="Tomar Foto" 
