@@ -1,4 +1,5 @@
 // src/components/Formulario.tsx
+
 import React, { useRef, useState } from "react";
 import {
   View,
@@ -8,14 +9,14 @@ import {
   StyleSheet,
   Text,
   Keyboard,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Platform
 } from "react-native";
 import { TextInput, Button, Card } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
 import { useCamera } from "../hooks/useCamera";
 import { createPDF, sharePDF } from "../../services/pdfService";
 import { FormData } from "../../types/types";
-import { validateForm } from "../utils/formUtils";
 import * as FileSystem from "expo-file-system";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import GraficoResistencias from "./GraficoResistencias";
@@ -36,7 +37,7 @@ const OPCIONES_ANCLAS = {
 };
 
 const Formulario: React.FC = () => {
-  console.log("✅ Componente Formulario montado"); 
+  console.log("Componente Formulario montado");
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [formData, setFormData] = useState<FormData>({
     emina: "",
@@ -68,8 +69,8 @@ const Formulario: React.FC = () => {
 
   const handleNextStep = () => {
     const camposObligatorios = [
-      "emina", "tecnico", "auxiliar", "ubicacionPrueba", "calidadRoca", 
-      "equipoBarrenacion", "temperaturaAmbiente", "unidadMinera", 
+      "emina", "tecnico", "auxiliar", "ubicacionPrueba", "calidadRoca",
+      "equipoBarrenacion", "temperaturaAmbiente", "unidadMinera",
       "fechaDescenso", "tipoAncla", "largo", "diametro", "brocaUsada", "tempAgua"
     ];
     for (let campo of camposObligatorios) {
@@ -78,6 +79,7 @@ const Formulario: React.FC = () => {
         return;
       }
     }
+    Keyboard.dismiss();
     setCurrentStep(2);
   };
 
@@ -85,42 +87,42 @@ const Formulario: React.FC = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ScrollView style={styles.container}>
-        {currentStep === 1 && (
-          <Card style={styles.card}>
-            <Card.Title title="Datos Iniciales" />
-            <Card.Content>
-              <TextInput label="Emina" value={formData.emina} onChangeText={text => handleChange("emina", text)} style={styles.input} />
-              <TextInput label="Técnico" value={formData.tecnico} onChangeText={text => handleChange("tecnico", text)} style={styles.input} />
-              <TextInput label="Auxiliar" value={formData.auxiliar} onChangeText={text => handleChange("auxiliar", text)} style={styles.input} />
-              <TextInput label="Ubicación de la Prueba" value={formData.ubicacionPrueba} onChangeText={text => handleChange("ubicacionPrueba", text)} style={styles.input} />
-              <TextInput label="Calidad de la Roca" value={formData.calidadRoca} onChangeText={text => handleChange("calidadRoca", text)} style={styles.input} />
-              <TextInput label="Equipo de Barrenación" value={formData.equipoBarrenacion} onChangeText={text => handleChange("equipoBarrenacion", text)} style={styles.input} />
-              <TextInput label="Temperatura Ambiente" value={formData.temperaturaAmbiente} keyboardType="numeric" onChangeText={text => handleChange("temperaturaAmbiente", text)} style={styles.input} />
-              <Text style={{ marginBottom: 6 }}>Unidad Minera</Text>
-              <Picker selectedValue={formData.unidadMinera} onValueChange={value => handleChange("unidadMinera", value)} style={styles.picker}>
-                {UNIDADES.map((unidad, idx) => <Picker.Item key={idx} label={unidad} value={unidad} />)}
-              </Picker>
-                            <Text style={{ marginBottom: 6 }}>Tipo de Ancla</Text>
-              <Picker selectedValue={formData.tipoAncla} onValueChange={value => handleChange("tipoAncla", value)} style={styles.picker}>
-                {Object.keys(OPCIONES_ANCLAS).map((ancla, idx) => <Picker.Item key={idx} label={ancla} value={ancla} />)}
-              </Picker>
-              <TextInput label="Largo del Ancla" value={formData.largo} onChangeText={text => handleChange("largo", text)} style={styles.input} />
-              <Text style={{ marginBottom: 6 }}>Diámetro del Ancla</Text>
-              <Picker selectedValue={formData.diametro} onValueChange={value => handleChange("diametro", value)} style={styles.picker}>
-                {diametrosDisponibles.map((diam, idx) => <Picker.Item key={idx} label={diam} value={diam} />)}
-              </Picker>
-              <TextInput label="Broca Usada" value={formData.brocaUsada || ""} onChangeText={text => handleChange("brocaUsada", text)} style={styles.input} />
-              <TextInput label="Temperatura del Agua" value={formData.tempAgua || ""} keyboardType="numeric" onChangeText={text => handleChange("tempAgua", text)} style={styles.input} />
-            </Card.Content>
-            <Card.Actions>
-              <Button mode="contained" onPress={handleNextStep}>Siguiente</Button>
-            </Card.Actions>
-          </Card>
-        )}
-        
-        {currentStep === 2 && (
-          <>
+        <ScrollView style={styles.container}>
+          {currentStep === 1 && (
+            <Card style={styles.card}>
+              <Card.Title title="Datos Iniciales" />
+              <Card.Content>
+                <TextInput label="Emina" value={formData.emina} onChangeText={text => handleChange("emina", text)} style={styles.input} />
+                <TextInput label="Técnico" value={formData.tecnico} onChangeText={text => handleChange("tecnico", text)} style={styles.input} />
+                <TextInput label="Auxiliar" value={formData.auxiliar} onChangeText={text => handleChange("auxiliar", text)} style={styles.input} />
+                <TextInput label="Ubicación de la Prueba" value={formData.ubicacionPrueba} onChangeText={text => handleChange("ubicacionPrueba", text)} style={styles.input} />
+                <TextInput label="Calidad de la Roca" value={formData.calidadRoca} onChangeText={text => handleChange("calidadRoca", text)} style={styles.input} />
+                <TextInput label="Equipo de Barrenación" value={formData.equipoBarrenacion} onChangeText={text => handleChange("equipoBarrenacion", text)} style={styles.input} />
+                <TextInput label="Temperatura Ambiente" value={formData.temperaturaAmbiente ?? ""} keyboardType="decimal-pad" onChangeText={text => handleChange("temperaturaAmbiente", text)} style={styles.input} />
+                <Text style={{ marginBottom: 6 }}>Unidad Minera</Text>
+                <Picker selectedValue={formData.unidadMinera} onValueChange={value => handleChange("unidadMinera", value)} style={styles.picker}>
+                  {UNIDADES.map((unidad, idx) => <Picker.Item key={idx} label={unidad} value={unidad} />)}
+                </Picker>
+                <Text style={{ marginBottom: 6 }}>Tipo de Ancla</Text>
+                <Picker selectedValue={formData.tipoAncla} onValueChange={value => handleChange("tipoAncla", value)} style={styles.picker}>
+                  {Object.keys(OPCIONES_ANCLAS).map((ancla, idx) => <Picker.Item key={idx} label={ancla} value={ancla} />)}
+                </Picker>
+                <TextInput label="Largo del Ancla" value={formData.largo} onChangeText={text => handleChange("largo", text)} style={styles.input} />
+                <Text style={{ marginBottom: 6 }}>Diámetro del Ancla</Text>
+                <Picker selectedValue={formData.diametro} onValueChange={value => handleChange("diametro", value)} style={styles.picker}>
+                  {diametrosDisponibles.map((diam, idx) => <Picker.Item key={idx} label={diam} value={diam} />)}
+                </Picker>
+                <TextInput label="Broca Usada" value={formData.brocaUsada ?? ""} onChangeText={text => handleChange("brocaUsada", text)} style={styles.input} />
+                <TextInput label="Temperatura del Agua" value={formData.tempAgua ?? ""} keyboardType="decimal-pad" onChangeText={text => handleChange("tempAgua", text)} style={styles.input} />
+              </Card.Content>
+              <Card.Actions>
+                <Button mode="contained" onPress={handleNextStep}>Siguiente</Button>
+              </Card.Actions>
+            </Card>
+          )}
+
+          {currentStep === 2 && (
+            <>
             <Card style={styles.card}>
               <Card.Title title="Pruebas de Resistencia" />
               <Card.Content>
@@ -263,14 +265,15 @@ const Formulario: React.FC = () => {
                 }} loading={generatingPDF}>Generar PDF</Button>
               </Card.Actions>
             </Card>
-          </>
-        )}
-<View style={styles.hiddenChart}>
-          <ViewShot ref={chartRef} options={{ format: "png", quality: 1, width: screenWidth * 2 }}>
-            <GraficoResistencias datos={formData.pruebas.map(p => parseFloat(p.resistencia) || 0)} />
-          </ViewShot>
-        </View>
-      </ScrollView>
+            </>
+          )}
+
+          <View style={styles.hiddenChart} pointerEvents="none">
+            <ViewShot ref={chartRef} options={{ format: "png", quality: 1, width: screenWidth * 2 }}>
+              <GraficoResistencias datos={formData.pruebas.map(p => parseFloat(p.resistencia) || 0)} />
+            </ViewShot>
+          </View>
+        </ScrollView>
     </TouchableWithoutFeedback>
   );
 };
